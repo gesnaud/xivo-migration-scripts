@@ -90,8 +90,8 @@ println "We let you 5 secondes to check if errors occurred, then migration will 
 sleep 5
 
 # preseed debconf to avoid being asked for configuration of new packages
-wget -q -O - http://fai.proformatique.com/d-i/lenny/pkg.cfg | debconf-set-selections
-wget -q -O - http://fai.proformatique.com/d-i/lenny/classes/xivo-gallifrey/custom.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/lenny/pkg.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/lenny/classes/xivo-gallifrey/custom.cfg | debconf-set-selections
 
 println "Pushing changes still in FAI (not packaged yet)"
 # allow late preseeding via packaging

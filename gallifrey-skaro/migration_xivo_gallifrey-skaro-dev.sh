@@ -43,8 +43,8 @@ wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
 
 println "Preseeding packages"
 # preseed debconf to avoid being asked for configuration of new packages
-wget -q -O - http://fai.proformatique.com/d-i/squeeze/pkg.cfg | debconf-set-selections
-wget -q -O - http://fai.proformatique.com/d-i/squeeze/classes/xivo-skaro/custom.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/squeeze/pkg.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/squeeze/classes/xivo-skaro/custom.cfg | debconf-set-selections
 
 if [ -n "${MIGRATION}" ]; then
   # necessary because of tools unloading modules would fail
