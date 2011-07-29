@@ -39,7 +39,7 @@ else
 fi
 
 println "Update Proformatique Repository Key"
-wget http://dak.proformatique.com/ziyi_proformatique_current.asc -O - | apt-key add -
+wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
 
 println "Preseeding packages"
 # preseed debconf to avoid being asked for configuration of new packages
@@ -94,7 +94,7 @@ if ! pkg_installed pf-fai; then
 
   # add base deb line if missing
   if ! rgrep -qE "^deb .*proformatique.* squeeze " /etc/apt/sources.list; then
-    echo "deb http://dak.proformatique.com/debian/ squeeze main" >>/etc/apt/sources.list
+    echo "deb http://mirror.xivo.fr/debian/ squeeze main" >>/etc/apt/sources.list
   fi
 
   apt-get update >/dev/null

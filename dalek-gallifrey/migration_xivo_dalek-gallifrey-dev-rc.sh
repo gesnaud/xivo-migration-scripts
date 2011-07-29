@@ -40,7 +40,7 @@ else
 fi
 
 println "Update Proformatique Repository Key"
-wget http://dak.proformatique.com/ziyi_proformatique_current.asc -O - | apt-key add -
+wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
 
 if [ -n "${MIGRATION}" ]; then
   # necessary because of tools unloading modules would fail
@@ -72,7 +72,7 @@ else
     fi
     # add base deb line if missing
     if ! rgrep -qE "^deb .*proformatique.* lenny " /etc/apt/sources.list*; then
-      echo "deb http://dak.proformatique.com/debian/ lenny main" >>/etc/apt/sources.list
+      echo "deb http://mirror.xivo.fr/debian/ lenny main" >>/etc/apt/sources.list
     fi
 
     aptitude update >/dev/null
