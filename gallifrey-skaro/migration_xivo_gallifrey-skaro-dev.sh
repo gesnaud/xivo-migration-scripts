@@ -39,12 +39,12 @@ else
 fi
 
 println "Update Proformatique Repository Key"
-wget http://dak.proformatique.com/ziyi_proformatique_current.asc -O - | apt-key add -
+wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
 
 println "Preseeding packages"
 # preseed debconf to avoid being asked for configuration of new packages
-wget -q -O - http://fai.proformatique.com/d-i/squeeze/pkg.cfg | debconf-set-selections
-wget -q -O - http://fai.proformatique.com/d-i/squeeze/classes/xivo-skaro/custom.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/squeeze/pkg.cfg | debconf-set-selections
+wget -q -O - http://mirror.xivo.fr/d-i/squeeze/classes/xivo-skaro/custom.cfg | debconf-set-selections
 
 if [ -n "${MIGRATION}" ]; then
   # necessary because of tools unloading modules would fail
@@ -94,7 +94,7 @@ if ! pkg_installed pf-fai; then
 
   # add base deb line if missing
   if ! rgrep -qE "^deb .*proformatique.* squeeze " /etc/apt/sources.list; then
-    echo "deb http://dak.proformatique.com/debian/ squeeze main" >>/etc/apt/sources.list
+    echo "deb http://mirror.xivo.fr/debian/ squeeze main" >>/etc/apt/sources.list
   fi
 
   apt-get update >/dev/null
