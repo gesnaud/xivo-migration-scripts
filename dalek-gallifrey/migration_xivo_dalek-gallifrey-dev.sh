@@ -50,6 +50,7 @@ wget -q -O - http://mirror.xivo.fr/d-i/lenny/classes/xivo-gallifrey/custom.cfg |
 if [ -n "${MIGRATION}" ]; then
   # necessary because of tools unloading modules would fail
   invoke-rc.d asterisk stop
+  invoke-rc.d monit stop
 
   BACKUP_CONF_BASE=/root/xivo-migration
   BACKUP_CONF=${BACKUP_CONF_BASE}/dalek-gallifrey
@@ -113,6 +114,10 @@ if [ -n "${MIGRATION}" ]; then
   if ! apt-config dump | grep APT::Cache-Limit >/dev/null; then
     echo 'APT::Cache-Limit "33554432";' >${APT_CONFIG}
   fi
+  apt-get update &> /dev/null
+  apt-get --force-yes -y install debian-keyring debian-archive-keyring &> /dev/null
+  apt-get update &> /dev/null
+
   CLEANUP_FILES="${CLEANUP_FILES} ${APT_CONFIG}"
 fi
 
@@ -126,7 +131,7 @@ if [ -n "${MIGRATION}" ]; then
   # it is _quite_ difficult to have only needed stuff installed, and not gnome-apt and other Suggests / Recommends
   # (and needed options to avoid this situation only exist in the next version...)
   # perl migration is also quite broken :-(
-  apt-get -y --no-remove install apt-utils aptitude apt aptitude-doc-ja- aptitude-doc-en- aptitude-doc-fr- aptitude-doc-fi- aptitude-doc-cs- perl librrds-perl libcrypt-ssleay-perl
+  apt-get -y --no-remove install apt-utils aptitude apt aptitude-doc-en perl librrds-perl libcrypt-ssleay-perl
 else
   apt-get -y --no-remove install apt
 fi
@@ -158,7 +163,6 @@ if pkg_installed mysql-server; then
   println "MySQL is installed, it needs to be upgraded first"
   apt-get -y --no-remove install mysql-server mysql-server-5.0
 fi
-
 println "Installing ${XIVO_BRANCH}, pray or slay"
 if [ -n "${MIGRATION}" ]; then
   println "Migration from Etch to Lenny in the same run"
@@ -195,32 +199,11 @@ fi
 println "Cleanup"
 rm -rf ${CLEANUP_FILES}
 
-## detect if already using Etch'n'Half or ask the user
-#if echo "${KERN_REL}" | grep -q "etchnhalf"; then
-#  REPLY="y"
-#else
-#  println "Do you wich to switch to Etch'n'Half? (y/n)"
-#  read REPLY
-#fi
-#if [ "${REPLY}" == "y" ]; then
-#  ETCHNHALF_KVER="2.6.24-etchnhalf.1-${KERN_FLAVOUR}"
-#
-#  apt-get -y install linux-image-${ETCHNHALF_KVER} dahdi-linux-modules-${ETCHNHALF_KVER}
-#  OPTIONAL_PKGS="misdn-modules sangoma-wanpipe-modules divas4linux-melware-modules"
-#  for KMOD in ${OPTIONAL_PKGS}; do
-#    # install or force-upgrade (if already using Etch'n'Half)
-#    if pkg_installed ${KMOD}-${KERN_REL} || pkg_installed ${KMOD}-${ETCHNHALF_KVER}; then
-#      apt-get -y install ${KMOD}-${ETCHNHALF_KVER}
-#    fi
-#  done
-#
-#  println "A reboot is needed to complete your installation !"
-#  println "(but it is up to you to trigger it when ready)"
-#fi
-
 if [ -n "${MIGRATION}" ]; then
   println "Installation finished"
 else
+  invoke-rc.d asterisk start
+  invoke-rc.d monit start
   println "Migration finished"
   if [ "${KERN_REL}" != "${NEW_KERN_REL}" ]; then
     println "!!! You should reboot soon to the new kernel !!!"
