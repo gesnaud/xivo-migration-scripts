@@ -46,9 +46,9 @@ install_xivo () {
     fi
     $update
     kernel_release=$(uname -r)
+    $install --purge postfix
     $download dahdi-linux-modules-$kernel_release pf-xivo
     $install dahdi-linux-modules-$kernel_release
-    $install --purge postfix
     $install pf-xivo
     if [ $? -eq 0 ]; then
         echo 'You must now finish the installation'
