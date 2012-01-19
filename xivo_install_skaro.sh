@@ -34,6 +34,8 @@ add_mirror() {
 }
 
 install_xivo () {
+    wget -q -O - $mirror_xivo/d-i/squeeze/pkg.cfg | debconf-set-selections
+    wget -q -O - $mirror_xivo/d-i/squeeze/classes/skaro/custom.cfg | debconf-set-selections
     update='apt-get update'
     install='apt-get install --assume-yes'
     download='apt-get install --assume-yes --download-only'
@@ -46,6 +48,7 @@ install_xivo () {
     kernel_release=$(uname -r)
     $download dahdi-linux-modules-$kernel_release pf-xivo
     $install dahdi-linux-modules-$kernel_release
+    $install --purge postfix
     $install pf-xivo
     if [ $? -eq 0 ]; then
         echo 'You must now finish the installation'
