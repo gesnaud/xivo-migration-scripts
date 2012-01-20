@@ -50,6 +50,21 @@ install_xivo () {
     $download dahdi-linux-modules-$kernel_release pf-xivo
     $install dahdi-linux-modules-$kernel_release
     $install pf-xivo
+
+    invoke-rc.d dahdi restart
+    /usr/sbin/dahdi_genconf
+    # fix rights
+    config="/etc/asterisk/dahdi-channels.conf"
+    if [ -e "${config}" ]; then
+        chown asterisk:www-data ${config}
+        chmod 660 ${config}
+    fi
+    # (restart with new config)
+    invoke-rc.d dahdi restart
+
+    # Asterisk proper start
+    invoke-rc.d asterisk restart
+
     if [ $? -eq 0 ]; then
         echo 'You must now finish the installation'
         xivo_ip=$(ip a s eth0 | grep -E 'inet.*eth0' | awk '{print $2}' | cut -d '/' -f 1 )
