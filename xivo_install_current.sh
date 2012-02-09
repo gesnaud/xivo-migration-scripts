@@ -1,1 +1,1 @@
-xivo_install_gallifrey.sh
+xivo_install_skaro.sh
