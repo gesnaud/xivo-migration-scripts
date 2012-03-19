@@ -61,7 +61,7 @@ else
 
     cp -a /etc/apt/sources.list /etc/apt/sources.list.inst-bak
     echo "deb http://mirror.xivo.fr/debian/ etch main" >>/etc/apt/sources.list
-    wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
+    wget http://mirror.xivo.fr/xivo_current.key -O - | apt-key add -
 
     aptitude update >/dev/null
     aptitude -y install pf-fai >/dev/null

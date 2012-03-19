@@ -18,7 +18,7 @@ if ! $(dpkg -l pf-fai | grep -q ii); then
 	echo "PF bootstrapping missing, installing..."
 
 	echo "deb http://dak.proformatique.com/debian/ etch main" >>/etc/apt/sources.list
-	wget http://dak.proformatique.com/ziyi_proformatique_current.asc -O - | apt-key add -
+	wget http://dak.proformatique.com/xivo_current.key -O - | apt-key add -
 
 	aptitude update >/dev/null
 	aptitude -y install pf-fai >/dev/null

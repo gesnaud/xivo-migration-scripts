@@ -40,7 +40,7 @@ else
 fi
 
 println "Update Proformatique Repository Key"
-wget http://mirror.xivo.fr/ziyi_proformatique_current.asc -O - | apt-key add -
+wget http://mirror.xivo.fr/xivo_current.key -O - | apt-key add -
 
 println "Preseeding packages"
 # preseed debconf to avoid being asked for configuration of new packages

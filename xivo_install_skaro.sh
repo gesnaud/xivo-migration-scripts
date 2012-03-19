@@ -18,7 +18,7 @@ check_system() {
     fi
 }
 add_xivo_key() {
-    wget $mirror_xivo/ziyi_proformatique_current.asc -O - | apt-key add -
+    wget $mirror_xivo/xivo_current.key -O - | apt-key add -
 }
 
 add_mirror() {
