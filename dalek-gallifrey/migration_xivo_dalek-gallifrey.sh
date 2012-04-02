@@ -106,9 +106,7 @@ if ! pkg_installed pf-fai; then
 fi
 
 if [ -n "${MIGRATION}" ]; then
-  echo "deb http://ftp.fr.debian.org/debian/ lenny main contrib non-free" >>/etc/apt/sources.list
-  echo "deb http://security.debian.org/ lenny/updates main" >>/etc/apt/sources.list
-  echo "deb http://volatile.debian.org/debian-volatile lenny/volatile main" >>/etc/apt/sources.list
+  echo "deb http://archive.debian.org/debian/ lenny main contrib non-free" >>/etc/apt/sources.list
 
   APT_CONFIG=/etc/apt/apt.conf.d/pf-lenny-migration
   if ! apt-config dump | grep APT::Cache-Limit >/dev/null; then
