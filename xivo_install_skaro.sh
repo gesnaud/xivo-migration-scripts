@@ -95,14 +95,14 @@ done
 skaro_version=${skaro_version:-'squeeze-xivo-skaro'}
 
 if [ $skaro_version = 'squeeze-xivo-skaro' ]; then
-    fai='pf-fai'
-    fai_xivo='pf-fai-xivo-1.2-skaro'
+    fai='xivo-fai'
+    fai_xivo='xivo-fai-skaro'
 elif [ $skaro_version = 'squeeze-xivo-skaro-rc' ]; then
-    fai='pf-fai'
-    fai_xivo='pf-fai-xivo-1.2-skaro-rc'
+    fai='xivo-fai'
+    fai_xivo='xivo-fai-skaro-rc'
 elif [ $skaro_version = 'squeeze-xivo-skaro-dev' ]; then
-    fai='pf-fai-dev'
-    fai_xivo='pf-fai-xivo-1.2-skaro-dev'
+    fai='xivo-fai-dev'
+    fai_xivo='xivo-fai-skaro-dev'
 fi
 
 check_system
