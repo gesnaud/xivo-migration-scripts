@@ -60,7 +60,7 @@ install_xivo () {
         chmod 660 ${config}
     fi
 
-    xivo-service restart
+    xivo-service restart all
 
     if [ $? -eq 0 ]; then
         echo 'You must now finish the installation'
