@@ -59,11 +59,8 @@ install_xivo () {
         chown asterisk:www-data ${config}
         chmod 660 ${config}
     fi
-    # (restart with new config)
-    invoke-rc.d dahdi restart
 
-    # Asterisk proper start
-    invoke-rc.d asterisk restart
+    xivo-service restart
 
     if [ $? -eq 0 ]; then
         echo 'You must now finish the installation'
