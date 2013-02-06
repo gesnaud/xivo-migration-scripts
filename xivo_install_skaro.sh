@@ -36,6 +36,7 @@ add_mirror() {
 install_xivo () {
     wget -q -O - $mirror_xivo/d-i/squeeze/pkg.cfg | debconf-set-selections
     wget -q -O - $mirror_xivo/d-i/squeeze/classes/skaro/custom.cfg | debconf-set-selections
+    echo startup=no > /etc/default/xivo
     update='apt-get update'
     install='apt-get install --assume-yes'
     download='apt-get install --assume-yes --download-only'
