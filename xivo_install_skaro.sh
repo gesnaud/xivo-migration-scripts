@@ -51,6 +51,9 @@ install_xivo () {
     $download dahdi-linux-modules-$kernel_release pf-xivo
     $install dahdi-linux-modules-$kernel_release
     $install pf-xivo
+    
+    # initialize databases
+    /usr/bin/xivo-update-db
 
     invoke-rc.d dahdi restart
     /usr/sbin/dahdi_genconf
