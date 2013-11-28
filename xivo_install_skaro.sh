@@ -2,7 +2,7 @@
 
 mirror_xivo="http://mirror.xivo.fr"
 error_on_debian_version() {
-    echo 'You must install XiVO Skaro on Debian Squeeze system'
+    echo 'You must install XiVO on a Debian "wheezy" system'
     exit
 }
 
@@ -11,31 +11,31 @@ check_system() {
     if [ ! -f $version_file ]; then
         error_on_debian_version
     else
-        version=$(cat $version_file | cut -d '.' -f 1-2)
+        version=$(cut -d '.' -f 1 "$version_file")
     fi
-    if [ $version != '6.0' ]; then
+    if [ $version != '7' ]; then
         error_on_debian_version
     fi
 }
+
 add_xivo_key() {
     wget $mirror_xivo/xivo_current.key -O - | apt-key add -
 }
 
 add_mirror() {
     echo "Add mirrors informations"
-    mirror_squeeze="deb $mirror_xivo/debian squeeze main contrib non-free"
+    local mirror="deb $mirror_xivo/debian wheezy main contrib non-free"
     apt_dir="/etc/apt/"
     sources_list_dir="$apt_dir/sources.list.d"
-    grep -r "$mirror_squeeze" $apt_dir
-    if [ $? -ne 0 ]; then
-        echo $mirror_squeeze > $sources_list_dir/tmp-pf.sources.list
+    if ! grep -qr "$mirror" "$apt_dir"; then
+        echo "$mirror" > $sources_list_dir/tmp-pf.sources.list
     fi
     add_xivo_key
 }
 
 install_xivo () {
-    wget -q -O - $mirror_xivo/d-i/squeeze/pkg.cfg | debconf-set-selections
-    wget -q -O - $mirror_xivo/d-i/squeeze/classes/skaro/custom.cfg | debconf-set-selections
+    wget -q -O - $mirror_xivo/d-i/wheezy/pkg.cfg | debconf-set-selections
+    wget -q -O - $mirror_xivo/d-i/wheezy/classes/wheezy-xivo-skaro-dev/custom.cfg | debconf-set-selections
     echo startup=no > /etc/default/xivo
     update='apt-get update'
     install='apt-get install --assume-yes'
@@ -75,7 +75,7 @@ install_xivo () {
 
 usage() {
     cat << EOF
-    This script is used to install XiVO Skaro
+    This script is used to install XiVO
 
     usage : $(basename $0) {-d|-r}
         whitout arg : install production version 
@@ -87,23 +87,29 @@ EOF
 
 while getopts :dr opt; do
     case ${opt} in
-        d)skaro_version='squeeze-xivo-skaro-dev';;
-        r)skaro_version='squeeze-xivo-skaro-rc';;
+        d)xivo_version='dev';;
+        r)xivo_version='rc';;
         *) usage;;
     esac
 done
 
-skaro_version=${skaro_version:-'squeeze-xivo-skaro'}
+xivo_version=${xivo_version:-'prod'}
 
-if [ $skaro_version = 'squeeze-xivo-skaro' ]; then
+if [ "$xivo_version" = 'prod' ]; then
+    # FIXME remove once supported
+    echo "installation $xivo_version not supported presently" >&2
+    exit 1
     fai='xivo-fai'
     fai_xivo='xivo-fai-skaro'
-elif [ $skaro_version = 'squeeze-xivo-skaro-rc' ]; then
+elif [ "$xivo_version" = 'rc' ]; then
+    # FIXME remove once supported
+    echo "installation $xivo_version not supported presently" >&2
+    exit 1
     fai='xivo-fai'
     fai_xivo='xivo-fai-skaro-rc'
-elif [ $skaro_version = 'squeeze-xivo-skaro-dev' ]; then
-    fai='xivo-fai-dev'
-    fai_xivo='xivo-fai-skaro-dev'
+elif [ "$xivo_version" = 'dev' ]; then
+    fai='xivo-wheezy-fai'
+    fai_xivo='xivo-wheezy-fai-skaro-dev'
 fi
 
 check_system
