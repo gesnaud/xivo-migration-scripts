@@ -1,1 +1,1 @@
-xivo_install_skaro.sh
+xivo_install.sh
