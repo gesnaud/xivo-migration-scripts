@@ -24,7 +24,7 @@ add_xivo_key() {
 
 add_mirror() {
     echo "Add mirrors informations"
-    local mirror="deb $mirror_xivo/debian wheezy main contrib non-free"
+    local mirror="deb $mirror_xivo/debian $distribution main contrib non-free"
     apt_dir="/etc/apt/"
     sources_list_dir="$apt_dir/sources.list.d"
     if ! grep -qr "$mirror" "$apt_dir"; then
@@ -41,7 +41,7 @@ install_xivo () {
     install='apt-get install --assume-yes'
     download='apt-get install --assume-yes --download-only'
     $update
-    $install $fai $fai_xivo
+    $install $fai_package
     if [ -f $sources_list_dir/tmp-pf.sources.list ]; then
         rm $sources_list_dir/tmp-pf.sources.list
     fi
@@ -96,20 +96,18 @@ done
 xivo_version=${xivo_version:-'prod'}
 
 if [ "$xivo_version" = 'prod' ]; then
-    # FIXME remove once supported
     echo "installation $xivo_version not supported presently" >&2
     exit 1
-    fai='xivo-fai'
-    fai_xivo='xivo-fai-skaro'
+    fai_package='xivo-fai'
+    distribution='xivo-five'
 elif [ "$xivo_version" = 'rc' ]; then
-    # FIXME remove once supported
     echo "installation $xivo_version not supported presently" >&2
     exit 1
-    fai='xivo-fai'
-    fai_xivo='xivo-fai-skaro-rc'
+    fai_package='xivo-fai-rc'
+    distribution='xivo-rc'
 elif [ "$xivo_version" = 'dev' ]; then
-    fai='xivo-wheezy-fai'
-    fai_xivo='xivo-wheezy-fai-skaro-dev'
+    fai_package='xivo-fai-dev'
+    distribution='xivo-dev'
 fi
 
 check_system
