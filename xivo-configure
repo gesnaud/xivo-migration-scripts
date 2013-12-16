@@ -1,0 +1,381 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import json
+import urllib
+import urllib2
+import datetime
+from xivo_dao.helpers.db_manager import daosession, xivo_daosession
+
+
+HOSTNAME = 'xivo'
+DOMAIN = 'lan-quebec.avencall.com'
+TIMEZONE = 'America/Montreal'
+LANG = 'fr_FR'
+NAMESERVERS = (
+    '192.168.32.251',
+    '91.194.178.5'
+)
+ENTITY_DICT = {
+    'name': 'entity',
+    'displayname': 'Entity',
+    'description': 'wizard configuration'
+}
+IFACE = 'eth0'
+NETMASK = '255.255.255.0'
+GATEWAY = '192.168.32.254'
+SUBNET = '192.168.32.0'
+CONFIGURED_FILE = '/var/lib/pf-xivo/configured'
+
+class HTTPRequest(object):
+
+    def __init__(self, host='127.0.0.1', port=80, headers=None, username=None, password=None):
+        self._host = host
+        self._port = port
+        self._url = '%s:%s' % (self._host, self._port)
+        self._headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'text/plain'
+        }
+        if headers:
+            self._headers.update(headers)
+        self._opener = self._build_opener(username, password)
+
+    def run(self, uri='', qry=None, data=None):
+        url = self._url
+        if uri:
+            url = '%s/%s' % (url, uri)
+        if qry is not None:
+            url = '%s?%s' % (url, self._build_qry(qry))
+        if isinstance(data, dict):
+            data = json.dumps(data)
+        request = urllib2.Request(url=url, data=data, headers=self._headers)
+        handle = self._opener.open(request)
+        try:
+            response = handle.read()
+            response_code = handle.code
+        finally:
+            handle.close()
+        return response_code, response
+
+    def _build_opener(self, username, password):
+        handlers = []
+        if username is not None and password is not None:
+            pwd_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            pwd_manager.add_password(None, self._host, username, password)
+            handlers.append(urllib2.HTTPDigestAuthHandler(pwd_manager))
+        return urllib2.build_opener(*handlers)
+
+    def _build_qry(self, qry):
+        return urllib.urlencode(qry)
+
+
+def _build_update_query(table, data, where_dict):
+    fields_str = ','.join(['%s=:%s' % (key, key) for key in data.iterkeys()])
+    where = ['"%s"=\'%s\'' % (key, value) for (key, value) in where_dict.items()]
+    return 'UPDATE "%s" SET %s WHERE %s' % (table, fields_str, where[0])
+
+
+def _build_insert_query(table, data):
+    columns = '","'.join(['%s' % key for key in data.iterkeys()])
+    values = '\',\''.join(['%s' % value for value in data.itervalues()])
+    return 'INSERT INTO "%s" ("%s") VALUES(\'%s\')' % (table, columns, values)
+
+
+def _exec_sql_cmd(db, qry, data={}):
+    if db == 'asterisk':
+        @daosession
+        def sql_cmd(session, data):
+            session.begin()
+            session.execute(qry, data)
+            session.commit()
+    else:
+        @xivo_daosession
+        def sql_cmd(session, data):
+            session.begin()
+            session.execute(qry, data)
+            session.commit()
+    sql_cmd(data)
+
+
+
+def sysconfd(action, data=None, qry=None):
+    try:
+        sysconfd_http_request.run('%s' % action, qry=qry, data=data)
+    except urllib2.HTTPError, e:
+        print 'ERROR during exec sysconfd command %s with msg %s' % (action, e)
+
+
+def enable_xivo_services():
+    data = {'xivo-service': 'enable'}
+    sysconfd('xivoctl', data)
+
+
+def start_xivo_services():
+    data = {'xivo-service': 'start'}
+    sysconfd('xivoctl', data)
+
+
+def webi_user_root():
+    data = {'passwd': 'superpass'}
+    qry = _build_update_query('user', data, {'id': 1})
+    _exec_sql_cmd('xivo', qry, data)
+
+
+def hosts():
+    hosts = {
+        'hostname': HOSTNAME,
+        'domain': DOMAIN
+    }
+    sysconfd('hosts', hosts)
+
+
+def resolvconf():
+    resolvconf = {
+        'nameservers': list(NAMESERVERS),
+        'search': [DOMAIN]
+    }
+    sysconfd('resolv_conf', resolvconf)
+
+    data = {
+        'hostname': HOSTNAME,
+        'domain': DOMAIN,
+        'nameserver1': NAMESERVERS[0],
+        'nameserver2': NAMESERVERS[1],
+        'search': DOMAIN,
+        'description': 'wizard configuration'
+    }
+    @xivo_daosession
+    def sql_cmd(session, data):
+        session.begin()
+        result = session.execute('SELECT id FROM "resolvconf" WHERE id=1')
+        if result:
+            qry = _build_update_query('resolvconf', data, {'id': 1})
+        else:
+            qry = _build_insert_query('resolvconf', data)
+        session.execute(qry, data)
+        session.commit()
+    sql_cmd(data)
+
+
+def entity():
+    _exec_sql_cmd('xivo', 'DELETE FROM "entity"', {})
+    qry = _build_insert_query('entity', ENTITY_DICT)
+    _exec_sql_cmd('xivo', qry, {})
+
+
+def context():
+    """
+    switchboard_directory_context = {}
+    internal = {}
+    incall = {}
+    outcall = {}
+    db_ast('context', switchboard_directory_context)
+    db_ast('context', internal)
+    db_ast('context', incall)
+    db_ast('context', outcall)
+    """
+    pass
+
+
+def local():
+    data = {'timezone': TIMEZONE}
+    qry = _build_update_query('general', data, {'id': 1})
+    _exec_sql_cmd('asterisk', qry, data)
+
+    data = {
+        'category': 'general',
+        'var_name': 'language',
+        'var_val': LANG
+    }
+    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':general'})
+    _exec_sql_cmd('asterisk', qry, data)
+    qry = _build_update_query('staticiax', data, {'var_name': ':var_name', 'category': ':general'})
+    _exec_sql_cmd('asterisk', qry, data)
+
+    data = {'option_value': LANG}
+    qry = _build_update_query('sccpgeneralsettings', data, {'option_name': 'language'})
+    _exec_sql_cmd('asterisk', qry, data)
+
+
+def provd():
+    data = {
+        'category': 'general',
+        'var_name': 'autocreate_prefix',
+        # code generated from '2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ'
+        'var_val': 'ap%s' % '12345678'
+    }
+    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':general'})
+    _exec_sql_cmd('asterisk', qry, data)
+
+    config = {
+        'X_type': 'registrar',
+        'id': 'default',
+        'deletable': False,
+        'displayname': 'local',
+        'parent_ids': [],
+        'raw_config': {'X_key':'xivo'},
+        'proxy_main': ADDRESS,
+        'registrar_main': ADDRESS
+    }
+    data = {'config': config}
+    provd_http_request.run('provd/cfg_mgr/configs', data=data)
+
+    config = {
+        'X_type': 'internal',
+        'id': 'base',
+        'deletable': False,
+        'displayname': 'base',
+        'parent_ids': [],
+        'raw_config': {'X_key':'xivo',
+                       'ntp_enabled': True,
+                       'ntp_ip': ADDRESS,
+                       'X_xivo_phonebook_ip': ADDRESS},
+    }
+    data = {'config': config}
+    provd_http_request.run('provd/cfg_mgr/configs', data=data)
+
+
+def netiface():
+    data = {
+        'ifname': IFACE,
+        'hwtypeid': 1,
+        'networktype': 'voip',
+        'type': 'iface',
+        'family': 'inet',
+        'method': 'static',
+        'address': ADDRESS,
+        'netmask': NETMASK,
+        'broadcast': '',
+        'gateway': GATEWAY,
+        'mtu': 1500,
+        'options': '',
+        'description': 'wizard configuration'
+    }
+    @xivo_daosession
+    def sql_cmd(session, data):
+        session.begin()
+        row = session.execute('SELECT id FROM "netiface" WHERE ifname=:ifname', data).fetchone()
+        if row:
+            qry = _build_update_query('netiface', data, {'id': row['id']})
+        else:
+            qry = _build_insert_query('netiface', data)
+        session.execute(qry, data)
+        session.commit()
+    sql_cmd(data)
+
+    data = {
+        'address': ADDRESS,
+        'netmask': NETMASK,
+        'gateway': GATEWAY
+    }
+    qry = {'ifname': IFACE}
+    # sysconfd('modify_eth_ipv4', data, qry)
+
+
+@xivo_daosession
+def commonconf(session):
+    session.begin()
+    conf = {}
+    row = session.execute('SELECT * FROM "dhcp" WHERE id=1').fetchone()
+    if row:
+        conf['dhcp_pool'] = '%s %s' % (row['pool_start'], row['pool_end'])
+        conf['dhcp_extra_ifaces'] = row['extra_ifaces']
+        conf['dhcp_active'] = int(row['active'])
+
+    row = session.execute('SELECT * FROM "mail" WHERE id=1').fetchone()
+    if row:
+        conf['smtp_mydomain'] = row['mydomain']
+        conf['smtp_origin'] = row['origin']
+        conf['smtp_relayhost'] = row['relayhost']
+        conf['smtp_fallback_relayhost'] = row['fallback_relayhost']
+        conf['smtp_canonical'] = row['canonical']
+
+    row = session.execute('SELECT * FROM "provisioning" WHERE id=1').fetchone()
+    if row:
+        conf['provd_net4_ip'] = row['net4_ip']
+        conf['provd_http_port'] = row['http_port']
+        conf['provd_username'] = row['username']
+        conf['provd_password'] = row['password']
+        conf['provd_rest_port'] = row['rest_port']
+        conf['provd_rest_net4_ip'] = row['net4_ip_rest']
+        conf['provd_rest_authentication'] = int(row['private'])
+        conf['provd_rest_ssl'] = int(row['secure'])
+        conf['provd_dhcp_integration'] = int(row['dhcp_integration'])
+
+    row = session.execute('SELECT * FROM "monitoring" WHERE id=1').fetchone()
+    if row:
+        conf['maintenance'] = row['maintenance']
+        if row['alert_emails']:
+            conf['alert_emails'] = row['alert_emails'].replace("\r\n", " ")
+        conf['dahdi_monitor_ports'] = row['dahdi_monitor_ports']
+        conf['max_call_duration'] = row['max_call_duration']
+
+    row = session.execute('SELECT * FROM "resolvconf" WHERE id=1').fetchone()
+    if row:
+        conf['hostname'] = row['hostname']
+        conf['domain'] = row['domain']
+        conf['extra_dns_search'] = ''
+        conf['nameservers'] = ' '.join(NAMESERVERS)
+    session.commit()
+
+    conf['voip_ifaces'] = IFACE
+    conf['net4_ip'] = ADDRESS
+    conf['net4_netmask'] = NETMASK
+    conf['net4_subnet'] = SUBNET
+    conf['astdb'] = 'postgresql://asterisk:proformatique@localhost/asterisk?charset=utf8'
+    conf['xivodb'] = 'postgresql://xivo:proformatique@localhost/xivo?encoding=utf8'
+
+    sysconfd('commonconf_generate', conf)
+    sysconfd('commonconf_apply')
+
+
+def main():
+    args_parsed = _new_argument_parser()
+    global ADDRESS
+    ADDRESS = args_parsed.xivo_ip
+    print '### RUN enable_xivo_services'
+    enable_xivo_services()
+    print '### RUN start_xivo_services'
+    start_xivo_services()
+    print '### RUN webi_user_root'
+    webi_user_root()
+    print '### RUN hosts'
+    hosts()
+    print '### RUN resolvconf'
+    resolvconf()
+    print '### RUN entity'
+    entity()
+    print '### RUN context'
+    context()
+    print '### RUN local'
+    local()
+    print '### RUN provd'
+    provd()
+    print '### RUN netiface'
+    netiface()
+    commonconf()
+    sysconfd('dhcpd_update')
+
+    now = datetime.datetime.now()
+    with open(CONFIGURED_FILE, 'w') as fobj:
+        fobj.write(str(now))
+
+
+def _new_argument_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--xivo_ip',
+                        required=True,
+                        help='Ip of XiVO')
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    provd_http_request = HTTPRequest('http://127.0.0.1',
+                                     8666,
+                                     {'Content-Type': 'application/vnd.proformatique.provd+json'},
+                                     'admin',
+                                     'admin')
+    sysconfd_http_request = HTTPRequest('http://127.0.0.1', 8668)
+    main()
