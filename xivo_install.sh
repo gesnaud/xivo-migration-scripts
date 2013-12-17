@@ -24,7 +24,7 @@ add_xivo_key() {
 
 add_mirror() {
     echo "Add mirrors informations"
-    local mirror="deb $mirror_xivo/debian $distribution main contrib non-free"
+    local mirror="deb $mirror_xivo/debian $distribution main"
     apt_dir="/etc/apt/"
     sources_list_dir="$apt_dir/sources.list.d"
     if ! grep -qr "$mirror" "$apt_dir"; then
