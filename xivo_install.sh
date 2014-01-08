@@ -48,22 +48,12 @@ install_xivo () {
     $update
     kernel_release=$(uname -r)
     $install --purge postfix
-    $download dahdi-linux-modules-$kernel_release pf-xivo
+    $download dahdi-linux-modules-$kernel_release xivo
     $install dahdi-linux-modules-$kernel_release
-    $install pf-xivo
-    
-    # initialize databases
-    /usr/bin/xivo-update-db
+    $install xivo
 
     invoke-rc.d dahdi restart
     /usr/sbin/dahdi_genconf
-    # fix rights
-    config="/etc/asterisk/dahdi-channels.conf"
-    if [ -e "${config}" ]; then
-        chown asterisk:www-data ${config}
-        chmod 660 ${config}
-    fi
-
     xivo-service restart all
 
     if [ $? -eq 0 ]; then
