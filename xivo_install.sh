@@ -36,7 +36,8 @@ add_mirror() {
 install_xivo () {
     wget -q -O - $mirror_xivo/d-i/wheezy/pkg.cfg | debconf-set-selections
     wget -q -O - $mirror_xivo/d-i/wheezy/classes/wheezy-xivo-skaro-dev/custom.cfg | debconf-set-selections
-    echo startup=no > /etc/default/xivo
+
+    export DEBIAN_FRONTEND=noninteractive
     update='apt-get update'
     install='apt-get install --assume-yes'
     download='apt-get install --assume-yes --download-only'
@@ -52,8 +53,6 @@ install_xivo () {
     $install dahdi-linux-modules-$kernel_release
     $install xivo
 
-    invoke-rc.d dahdi restart
-    /usr/sbin/dahdi_genconf
     xivo-service restart all
 
     if [ $? -eq 0 ]; then
