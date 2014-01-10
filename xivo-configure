@@ -26,7 +26,7 @@ IFACE = 'eth0'
 NETMASK = '255.255.255.0'
 GATEWAY = '192.168.32.254'
 SUBNET = '192.168.32.0'
-CONFIGURED_FILE = '/var/lib/pf-xivo/configured'
+CONFIGURED_FILE = '/var/lib/xivo/configured'
 
 class HTTPRequest(object):
 
@@ -220,7 +220,10 @@ def provd():
         'registrar_main': ADDRESS
     }
     data = {'config': config}
-    provd_http_request.run('provd/cfg_mgr/configs', data=data)
+    try:
+        provd_http_request.run('provd/cfg_mgr/configs', data=data)
+    except urllib2.HTTPError:
+        print 'Provd config default already exist, pass.'
 
     config = {
         'X_type': 'internal',
@@ -234,7 +237,10 @@ def provd():
                        'X_xivo_phonebook_ip': ADDRESS},
     }
     data = {'config': config}
-    provd_http_request.run('provd/cfg_mgr/configs', data=data)
+    try:
+        provd_http_request.run('provd/cfg_mgr/configs', data=data)
+    except urllib2.HTTPError:
+        print 'Provd config base already exist, pass.'
 
 
 def netiface():
