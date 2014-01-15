@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os.path
 import urllib
 import urllib2
 import datetime
@@ -26,7 +27,17 @@ IFACE = 'eth0'
 NETMASK = '255.255.255.0'
 GATEWAY = '192.168.32.254'
 SUBNET = '192.168.32.0'
-CONFIGURED_FILE = '/var/lib/xivo/configured'
+
+
+def find_configured_file():
+    for possible_configured_file in ['/var/lib/xivo/configured', '/var/lib/pf-xivo/configured']:
+        if os.path.isfile(possible_configured_file):
+            return possible_configured_file
+    raise Exception('/var/lib/{pf-,}xivo/configured: no such file')
+
+
+CONFIGURED_FILE = find_configured_file()
+
 
 class HTTPRequest(object):
 
