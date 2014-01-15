@@ -30,10 +30,10 @@ SUBNET = '192.168.32.0'
 
 
 def find_configured_file():
-    for possible_configured_file in ['/var/lib/xivo/configured', '/var/lib/pf-xivo/configured']:
-        if os.path.isfile(possible_configured_file):
-            return possible_configured_file
-    raise Exception('/var/lib/{pf-,}xivo/configured: no such file')
+    for possible_directory in ['/var/lib/xivo', '/var/lib/pf-xivo']:
+        if os.path.isdir(possible_directory):
+            return possible_directory + '/configured'
+    raise Exception('/var/lib/{pf-,}xivo: no such directory')
 
 
 CONFIGURED_FILE = find_configured_file()
