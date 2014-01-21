@@ -85,13 +85,9 @@ done
 xivo_version=${xivo_version:-'prod'}
 
 if [ "$xivo_version" = 'prod' ]; then
-    echo "installation $xivo_version not supported presently" >&2
-    exit 1
     fai_package='xivo-fai'
     distribution='xivo-five'
 elif [ "$xivo_version" = 'rc' ]; then
-    echo "installation $xivo_version not supported presently" >&2
-    exit 1
     fai_package='xivo-fai-rc'
     distribution='xivo-rc'
 elif [ "$xivo_version" = 'dev' ]; then
