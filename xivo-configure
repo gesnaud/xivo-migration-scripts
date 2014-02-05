@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import socket
 import os.path
 import urllib
 import urllib2
@@ -24,6 +25,7 @@ ENTITY_DICT = {
     'description': 'wizard configuration'
 }
 IFACE = 'eth0'
+ADDRESS = socket.gethostbyname(socket.gethostname())
 NETMASK = '255.255.255.0'
 GATEWAY = '192.168.32.254'
 SUBNET = '192.168.32.0'
@@ -351,7 +353,8 @@ def commonconf(session):
 def main():
     args_parsed = _new_argument_parser()
     global ADDRESS
-    ADDRESS = args_parsed.xivo_ip
+    if args_parsed.xivo_ip:
+        ADDRESS = args_parsed.xivo_ip
     print '### RUN enable_xivo_services'
     enable_xivo_services()
     print '### RUN start_xivo_services'
@@ -383,7 +386,6 @@ def main():
 def _new_argument_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--xivo_ip',
-                        required=True,
                         help='Ip of XiVO')
     return parser.parse_args()
 
