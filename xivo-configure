@@ -86,8 +86,8 @@ class HTTPRequest(object):
 
 def _build_update_query(table, data, where_dict):
     fields_str = ','.join(['%s=:%s' % (key, key) for key in data.iterkeys()])
-    where = ['"%s"=\'%s\'' % (key, value) for (key, value) in where_dict.items()]
-    return 'UPDATE "%s" SET %s WHERE %s' % (table, fields_str, where[0])
+    where = ' AND '.join('"%s"=\'%s\'' % (key, value) for (key, value) in where_dict.items())
+    return 'UPDATE "%s" SET %s WHERE %s' % (table, fields_str, where)
 
 
 def _build_insert_query(table, data):
@@ -202,9 +202,9 @@ def local():
         'var_name': 'language',
         'var_val': LANG
     }
-    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':general'})
+    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':category'})
     _exec_sql_cmd('asterisk', qry, data)
-    qry = _build_update_query('staticiax', data, {'var_name': ':var_name', 'category': ':general'})
+    qry = _build_update_query('staticiax', data, {'var_name': ':var_name', 'category': ':category'})
     _exec_sql_cmd('asterisk', qry, data)
 
     data = {'option_value': LANG}
@@ -219,7 +219,7 @@ def provd():
         # code generated from '2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ'
         'var_val': 'ap%s' % '12345678'
     }
-    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':general'})
+    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':category'})
     _exec_sql_cmd('asterisk', qry, data)
 
     config = {
