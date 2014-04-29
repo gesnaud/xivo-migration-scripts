@@ -197,14 +197,10 @@ def local():
     qry = _build_update_query('general', data, {'id': 1})
     _exec_sql_cmd('asterisk', qry, data)
 
-    data = {
-        'category': 'general',
-        'var_name': 'language',
-        'var_val': LANG
-    }
-    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':category'})
+    data = {'var_val': LANG}
+    qry = _build_update_query('staticsip', data, {'var_name': 'language', 'category': 'general'})
     _exec_sql_cmd('asterisk', qry, data)
-    qry = _build_update_query('staticiax', data, {'var_name': ':var_name', 'category': ':category'})
+    qry = _build_update_query('staticiax', data, {'var_name': 'language', 'category': 'general'})
     _exec_sql_cmd('asterisk', qry, data)
 
     data = {'option_value': LANG}
@@ -214,12 +210,10 @@ def local():
 
 def provd():
     data = {
-        'category': 'general',
-        'var_name': 'autocreate_prefix',
         # code generated from '2346789bcdfghjkmnpqrtvwxyzBCDFGHJKLMNPQRTVWXYZ'
         'var_val': 'ap%s' % '12345678'
     }
-    qry = _build_update_query('staticsip', data, {'var_name': ':var_name', 'category': ':category'})
+    qry = _build_update_query('staticsip', data, {'var_name': 'autocreate_prefix', 'category': 'general'})
     _exec_sql_cmd('asterisk', qry, data)
 
     config = {
