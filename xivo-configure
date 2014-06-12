@@ -8,7 +8,7 @@ import os.path
 import urllib
 import urllib2
 import datetime
-from xivo_dao.helpers.db_manager import daosession
+from xivo_dao.helpers.db_manager import daosession, xivo_daosession
 
 
 HOSTNAME = 'xivo'
@@ -96,12 +96,19 @@ def _build_insert_query(table, data):
     return 'INSERT INTO "%s" ("%s") VALUES(\'%s\')' % (table, columns, values)
 
 
-def _exec_sql_cmd(qry, data={}):
-    @daosession
-    def sql_cmd(session, data):
-	session.begin()
-	session.execute(qry, data)
-	session.commit()
+def _exec_sql_cmd(db, qry, data={}):
+    if db == 'asterisk':
+        @daosession
+        def sql_cmd(session, data):
+            session.begin()
+            session.execute(qry, data)
+            session.commit()
+    else:
+        @xivo_daosession
+        def sql_cmd(session, data):
+            session.begin()
+            session.execute(qry, data)
+            session.commit()
     sql_cmd(data)
 
 
@@ -126,7 +133,7 @@ def start_xivo_services():
 def webi_user_root():
     data = {'passwd': 'superpass'}
     qry = _build_update_query('user', data, {'id': 1})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('xivo', qry, data)
 
 
 def hosts():
@@ -152,7 +159,7 @@ def resolvconf():
         'search': DOMAIN,
         'description': 'wizard configuration'
     }
-    @daosession
+    @xivo_daosession
     def sql_cmd(session, data):
         session.begin()
         result = session.execute('SELECT id FROM "resolvconf" WHERE id=1')
@@ -166,9 +173,9 @@ def resolvconf():
 
 
 def entity():
-    _exec_sql_cmd('DELETE FROM "entity"', {})
+    _exec_sql_cmd('xivo', 'DELETE FROM "entity"', {})
     qry = _build_insert_query('entity', ENTITY_DICT)
-    _exec_sql_cmd(qry, {})
+    _exec_sql_cmd('xivo', qry, {})
 
 
 def context():
@@ -188,17 +195,17 @@ def context():
 def local():
     data = {'timezone': TIMEZONE}
     qry = _build_update_query('general', data, {'id': 1})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('asterisk', qry, data)
 
     data = {'var_val': LANG}
     qry = _build_update_query('staticsip', data, {'var_name': 'language', 'category': 'general'})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('asterisk', qry, data)
     qry = _build_update_query('staticiax', data, {'var_name': 'language', 'category': 'general'})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('asterisk', qry, data)
 
     data = {'option_value': LANG}
     qry = _build_update_query('sccpgeneralsettings', data, {'option_name': 'language'})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('asterisk', qry, data)
 
 
 def provd():
@@ -207,7 +214,7 @@ def provd():
         'var_val': 'ap%s' % '12345678'
     }
     qry = _build_update_query('staticsip', data, {'var_name': 'autocreate_prefix', 'category': 'general'})
-    _exec_sql_cmd(qry, data)
+    _exec_sql_cmd('asterisk', qry, data)
 
     config = {
         'X_type': 'registrar',
@@ -259,7 +266,7 @@ def netiface():
         'options': '',
         'description': 'wizard configuration'
     }
-    @daosession
+    @xivo_daosession
     def sql_cmd(session, data):
         session.begin()
         row = session.execute('SELECT id FROM "netiface" WHERE ifname=:ifname', data).fetchone()
@@ -280,7 +287,7 @@ def netiface():
     # sysconfd('modify_eth_ipv4', data, qry)
 
 
-@daosession
+@xivo_daosession
 def commonconf(session):
     session.begin()
     conf = {}
