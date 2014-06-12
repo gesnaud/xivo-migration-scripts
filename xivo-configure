@@ -8,7 +8,13 @@ import os.path
 import urllib
 import urllib2
 import datetime
-from xivo_dao.helpers.db_manager import daosession, xivo_daosession
+from xivo_dao.helpers.db_manager import daosession
+
+# Handle both versions: two databases asterisk/xivo or one database asterisk
+try:
+    from xivo_dao.helpers.db_manager import xivo_daosession
+except ImportError:
+    xivo_daosession = daosession
 
 
 HOSTNAME = 'xivo'
