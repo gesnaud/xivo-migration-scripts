@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mirror_xivo="http://mirror.xivo.fr"
+mirror_xivo="http://mirror.xivo.io"
 error_on_debian_version() {
     echo 'You must install XiVO on a Debian "wheezy" system'
     exit
