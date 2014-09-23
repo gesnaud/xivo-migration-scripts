@@ -1,6 +1,10 @@
 #!/bin/bash
 
 mirror_xivo="http://mirror.xivo.io"
+update='apt-get update'
+install='apt-get install --assume-yes'
+download='apt-get install --assume-yes --download-only'
+
 error_on_debian_version() {
     echo 'You must install XiVO on a Debian "wheezy" system'
     exit
@@ -23,6 +27,16 @@ add_xivo_key() {
 }
 
 add_mirror() {
+    while getopts :dr opt; do
+        case ${opt} in
+            d)distribution='xivo-dev';;
+            r)distribution='xivo-rc';;
+            *) usage;;
+        esac
+    done
+
+    distribution=${distribution:-'xivo-five'}
+
     echo "Add mirrors informations"
     local mirror="deb $mirror_xivo/debian $distribution main"
     apt_dir="/etc/apt/"
@@ -31,22 +45,21 @@ add_mirror() {
         echo "$mirror" > $sources_list_dir/tmp-pf.sources.list
     fi
     add_xivo_key
+
+    export DEBIAN_FRONTEND=noninteractive
+    $update
+    $install xivo-dist
+
+    if [ -f $sources_list_dir/tmp-pf.sources.list ]; then
+        rm $sources_list_dir/tmp-pf.sources.list
+    fi
+    $update
 }
 
 install_xivo () {
     wget -q -O - $mirror_xivo/d-i/wheezy/pkg.cfg | debconf-set-selections
     wget -q -O - $mirror_xivo/d-i/wheezy/classes/wheezy-xivo-skaro-dev/custom.cfg | debconf-set-selections
 
-    export DEBIAN_FRONTEND=noninteractive
-    update='apt-get update'
-    install='apt-get install --assume-yes'
-    download='apt-get install --assume-yes --download-only'
-    $update
-    $install $fai_package
-    if [ -f $sources_list_dir/tmp-pf.sources.list ]; then
-        rm $sources_list_dir/tmp-pf.sources.list
-    fi
-    $update
     kernel_release=$(uname -r)
     $install --purge postfix
     $download dahdi-linux-modules-$kernel_release xivo
@@ -67,33 +80,12 @@ usage() {
     This script is used to install XiVO
 
     usage : $(basename $0) {-d|-r}
-        whitout arg : install production version 
+        whitout arg : install production version
         -r          : install release candidate version
         -d          : install development version
 
 EOF
 }
-
-while getopts :dr opt; do
-    case ${opt} in
-        d)xivo_version='dev';;
-        r)xivo_version='rc';;
-        *) usage;;
-    esac
-done
-
-xivo_version=${xivo_version:-'prod'}
-
-if [ "$xivo_version" = 'prod' ]; then
-    fai_package='xivo-fai'
-    distribution='xivo-five'
-elif [ "$xivo_version" = 'rc' ]; then
-    fai_package='xivo-fai-rc'
-    distribution='xivo-rc'
-elif [ "$xivo_version" = 'dev' ]; then
-    fai_package='xivo-fai-dev'
-    distribution='xivo-dev'
-fi
 
 check_system
 add_mirror
