@@ -27,16 +27,6 @@ add_xivo_key() {
 }
 
 add_mirror() {
-    while getopts :dr opt; do
-        case ${opt} in
-            d)distribution='xivo-dev';;
-            r)distribution='xivo-rc';;
-            *) usage;;
-        esac
-    done
-
-    distribution=${distribution:-'xivo-five'}
-
     echo "Add mirrors informations"
     local mirror="deb $mirror_xivo/debian $distribution main"
     apt_dir="/etc/apt/"
@@ -86,6 +76,16 @@ usage() {
 
 EOF
 }
+
+while getopts :dr opt; do
+    case ${opt} in
+        d)distribution='xivo-dev';;
+        r)distribution='xivo-rc';;
+        *) usage;;
+    esac
+done
+
+distribution=${distribution:-'xivo-five'}
 
 check_system
 add_mirror
