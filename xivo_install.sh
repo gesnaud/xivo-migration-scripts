@@ -39,6 +39,7 @@ add_mirror() {
     export DEBIAN_FRONTEND=noninteractive
     $update
     $install xivo-dist
+    xivo-dist "$distribution"
 
     rm -f "$sources_list_dir/tmp-pf.sources.list"
     $update
