@@ -29,7 +29,7 @@ add_xivo_key() {
 add_mirror() {
     echo "Add mirrors informations"
     local mirror="deb $mirror_xivo/debian $distribution main"
-    apt_dir="/etc/apt/"
+    apt_dir="/etc/apt"
     sources_list_dir="$apt_dir/sources.list.d"
     if ! grep -qr "$mirror" "$apt_dir"; then
         echo "$mirror" > $sources_list_dir/tmp-pf.sources.list
@@ -40,9 +40,7 @@ add_mirror() {
     $update
     $install xivo-dist
 
-    if [ -f $sources_list_dir/tmp-pf.sources.list ]; then
-        rm $sources_list_dir/tmp-pf.sources.list
-    fi
+    rm -f "$sources_list_dir/tmp-pf.sources.list"
     $update
 }
 
