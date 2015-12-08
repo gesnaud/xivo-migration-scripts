@@ -47,7 +47,6 @@ add_mirror() {
 
 install_xivo () {
     wget -q -O - $mirror_xivo/d-i/wheezy/pkg.cfg | debconf-set-selections
-    wget -q -O - $mirror_xivo/d-i/wheezy/classes/wheezy-xivo-skaro-dev/custom.cfg | debconf-set-selections
 
     kernel_release=$(uname -r)
     $install --purge postfix
