@@ -7,7 +7,7 @@ download='apt-get install --assume-yes --download-only'
 
 error_on_debian_version() {
     echo 'You must install XiVO on a Debian "jessie" system'
-    exit
+    exit 1
 }
 
 check_system() {
