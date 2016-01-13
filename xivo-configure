@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from contextlib import contextmanager
+
+from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.sql import text
+
 import argparse
 import json
 import socket
@@ -8,9 +14,6 @@ import os.path
 import urllib
 import urllib2
 import datetime
-
-from contextlib import contextmanager
-from xivo_dao.helpers import db_manager
 
 
 HOSTNAME = 'xivo'
@@ -33,25 +36,30 @@ GATEWAY = '192.168.32.254'
 SUBNET = '192.168.32.0'
 
 
-xivosession = getattr(db_manager, 'xivo_daosession', db_manager.daosession)
+asterisk_engine = create_engine('postgresql://asterisk:proformatique@localhost/asterisk')
+try:
+    xivo_engine = create_engine('postgresql://xivo:proformatique@localhost/xivo')
+    xivo_engine.connect()
+except OperationalError:
+    xivo_engine = asterisk_engine
 
 
 @contextmanager
-@db_manager.daosession
-def asterisk_session(session):
-    if session.autocommit is False:
-        session.begin()
-    yield session
-    session.commit()
+def asterisk_conn():
+    connection = asterisk_engine.connect()
+    trans = connection.begin()
+    yield connection
+    trans.commit()
+    connection.close()
 
 
 @contextmanager
-@xivosession
-def xivo_session(session):
-    if session.autocommit is False:
-        session.begin()
-    yield session
-    session.commit()
+def xivo_conn():
+    connection = xivo_engine.connect()
+    trans = connection.begin()
+    yield connection
+    trans.commit()
+    connection.close()
 
 
 def find_configured_file():
@@ -110,13 +118,13 @@ class HTTPRequest(object):
 def _build_update_query(table, data, where_dict):
     fields_str = ','.join(['%s=:%s' % (key, key) for key in data.iterkeys()])
     where = ' AND '.join('"%s"=\'%s\'' % (key, value) for (key, value) in where_dict.items())
-    return 'UPDATE "%s" SET %s WHERE %s' % (table, fields_str, where)
+    return text('UPDATE "%s" SET %s WHERE %s' % (table, fields_str, where))
 
 
 def _build_insert_query(table, data):
     columns = '","'.join(['%s' % key for key in data.iterkeys()])
     values = '\',\''.join(['%s' % value for value in data.itervalues()])
-    return 'INSERT INTO "%s" ("%s") VALUES(\'%s\')' % (table, columns, values)
+    return text('INSERT INTO "%s" ("%s") VALUES(\'%s\')' % (table, columns, values))
 
 
 def sysconfd(action, data=None, qry=None):
@@ -137,10 +145,10 @@ def start_xivo_services():
 
 
 def webi_user_root():
-    with xivo_session() as session:
+    with xivo_conn() as conn:
         data = {'passwd': 'superpass'}
         qry = _build_update_query('user', data, {'id': 1})
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
 
 def hosts():
@@ -167,20 +175,20 @@ def resolvconf():
         'description': 'wizard configuration'
     }
 
-    with xivo_session() as session:
-        result = session.execute('SELECT id FROM "resolvconf" WHERE id=1')
+    with xivo_conn() as conn:
+        result = conn.execute('SELECT id FROM "resolvconf" WHERE id=1')
         if result:
             qry = _build_update_query('resolvconf', data, {'id': 1})
         else:
             qry = _build_insert_query('resolvconf', data)
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
 
 def entity():
-    with xivo_session() as session:
-        session.execute('DELETE FROM "entity"')
+    with xivo_conn() as conn:
+        conn.execute('DELETE FROM "entity"')
         qry = _build_insert_query('entity', ENTITY_DICT)
-        session.execute(qry)
+        conn.execute(qry)
 
 
 def context():
@@ -198,21 +206,21 @@ def context():
 
 
 def local():
-    with asterisk_session() as session:
+    with asterisk_conn() as conn:
         data = {'timezone': TIMEZONE}
         qry = _build_update_query('general', data, {'id': 1})
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
         data = {'var_val': LANG}
         qry = _build_update_query('staticsip', data, {'var_name': 'language', 'category': 'general'})
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
         qry = _build_update_query('staticiax', data, {'var_name': 'language', 'category': 'general'})
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
         data = {'option_value': LANG}
         qry = _build_update_query('sccpgeneralsettings', data, {'option_name': 'language'})
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
 
 def provd():
@@ -221,9 +229,9 @@ def provd():
         'var_val': 'ap%s' % '12345678'
     }
 
-    with asterisk_session() as session:
+    with asterisk_conn() as conn:
         qry = _build_update_query('staticsip', data, {'var_name': 'autocreate_prefix', 'category': 'general'})
-        session.execute(qry)
+        conn.execute(qry, data)
 
     config = {
         'X_type': 'registrar',
@@ -276,13 +284,14 @@ def netiface():
         'description': 'wizard configuration'
     }
 
-    with xivo_session() as session:
-        row = session.execute('SELECT id FROM "netiface" WHERE ifname=:ifname', data).fetchone()
+    with xivo_conn() as conn:
+        qry = text('SELECT id FROM "netiface" WHERE ifname=:ifname')
+        row = conn.execute(qry, data).fetchone()
         if row:
             qry = _build_update_query('netiface', data, {'id': row['id']})
         else:
             qry = _build_insert_query('netiface', data)
-        session.execute(qry, data)
+        conn.execute(qry, data)
 
     data = {
         'address': ADDRESS,
@@ -294,15 +303,15 @@ def netiface():
 
 
 def commonconf():
-    with xivo_session() as session:
+    with xivo_conn() as conn:
         conf = {}
-        row = session.execute('SELECT * FROM "dhcp" WHERE id=1').fetchone()
+        row = conn.execute('SELECT * FROM "dhcp" WHERE id=1').fetchone()
         if row:
             conf['dhcp_pool'] = '%s %s' % (row['pool_start'], row['pool_end'])
             conf['dhcp_extra_ifaces'] = row['extra_ifaces']
             conf['dhcp_active'] = int(row['active'])
 
-        row = session.execute('SELECT * FROM "mail" WHERE id=1').fetchone()
+        row = conn.execute('SELECT * FROM "mail" WHERE id=1').fetchone()
         if row:
             conf['smtp_mydomain'] = row['mydomain']
             conf['smtp_origin'] = row['origin']
@@ -310,7 +319,7 @@ def commonconf():
             conf['smtp_fallback_relayhost'] = row['fallback_relayhost']
             conf['smtp_canonical'] = row['canonical']
 
-        row = session.execute('SELECT * FROM "provisioning" WHERE id=1').fetchone()
+        row = conn.execute('SELECT * FROM "provisioning" WHERE id=1').fetchone()
         if row:
             conf['provd_net4_ip'] = row['net4_ip']
             conf['provd_http_port'] = row['http_port']
@@ -322,7 +331,7 @@ def commonconf():
             conf['provd_rest_ssl'] = int(row['secure'])
             conf['provd_dhcp_integration'] = int(row['dhcp_integration'])
 
-        row = session.execute('SELECT * FROM "monitoring" WHERE id=1').fetchone()
+        row = conn.execute('SELECT * FROM "monitoring" WHERE id=1').fetchone()
         if row:
             conf['maintenance'] = row['maintenance']
             if row['alert_emails']:
@@ -330,7 +339,7 @@ def commonconf():
             conf['dahdi_monitor_ports'] = row['dahdi_monitor_ports']
             conf['max_call_duration'] = row['max_call_duration']
 
-        row = session.execute('SELECT * FROM "resolvconf" WHERE id=1').fetchone()
+        row = conn.execute('SELECT * FROM "resolvconf" WHERE id=1').fetchone()
         if row:
             conf['hostname'] = row['hostname']
             conf['domain'] = row['domain']
