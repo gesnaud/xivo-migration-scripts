@@ -17,12 +17,11 @@ import datetime
 
 
 HOSTNAME = 'xivo'
-DOMAIN = 'lan-quebec.avencall.com'
+DOMAIN = 'lan.proformatique.com'
 TIMEZONE = 'America/Montreal'
 LANG = 'fr_FR'
 NAMESERVERS = (
     '192.168.32.251',
-    '91.194.178.5'
 )
 ENTITY_DICT = {
     'name': 'entity',
@@ -170,7 +169,6 @@ def resolvconf():
         'hostname': HOSTNAME,
         'domain': DOMAIN,
         'nameserver1': NAMESERVERS[0],
-        'nameserver2': NAMESERVERS[1],
         'search': DOMAIN,
         'description': 'wizard configuration'
     }
