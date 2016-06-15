@@ -63,28 +63,29 @@ install_xivo () {
     fi
 }
 
-usage() {
+  usage() {
     cat << EOF
     This script is used to install XiVO
 
-    usage : $(basename $0) {-d|-r}
+    usage : $(basename $0) {-d|-r|-a}
         whitout arg : install production version
         -r          : install release candidate version
         -d          : install development version
+        -a          : install archived version (XX.XX)
 
 EOF
 }
 
-while getopts :dr opt; do
+while getopts :dra opt; do
     case ${opt} in
         d)distribution='xivo-dev';;
         r)distribution='xivo-rc';;
+        a)distribution='xivo-'$2;;
         *) usage;;
     esac
 done
 
 distribution=${distribution:-'xivo-five'}
-
 check_system
 add_mirror
 install_xivo
