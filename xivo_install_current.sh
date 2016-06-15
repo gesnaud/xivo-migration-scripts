@@ -4,9 +4,10 @@ mirror_xivo="http://mirror.xivo.io"
 update='apt-get update'
 install='apt-get install --assume-yes'
 download='apt-get install --assume-yes --download-only'
+repo='debian'
 
 error_on_debian_version() {
-    echo 'You must install XiVO on a Debian version' $debian_version
+    echo 'You must install XiVO on a Debian version' $debian_version'.X'
     echo 'Your actual version is version' $version
     exit 1
 }
@@ -23,22 +24,18 @@ check_system() {
     if [[ $xivo_target_version == 'dev' || $xivo_target_version == 'rc' || $xivo_target_version == 'five' ]]; then
         debian_version='8'
     else
-        numeral_version_comparison=$(echo "$xivo_target_version>15.20" | bc)
-
-        if [ $numeral_version_comparison == '1' ]; then
+        if [[ "$xivo_target_version" > "15.19" ]]; then
             debian_version='8'
         else
             debian_version='7'
         fi
-
     fi
 
     if [ $version != $debian_version ]; then
         error_on_debian_version
-    else
-        echo "Your Debian version is compatible, let's process..."
     fi
 }
+
 
 
 add_xivo_key() {
@@ -97,8 +94,8 @@ EOF
 
 while getopts :dra opt; do
     case ${opt} in
-        d)distribution='xivo-dev'; repo='debian';;
-        r)distribution='xivo-rc'; repo='debian';;
+        d)distribution='xivo-dev';;
+        r)distribution='xivo-rc';;
         a)distribution='xivo-'$2; repo='archive';;
         *) usage;;
     esac
