@@ -6,21 +6,40 @@ install='apt-get install --assume-yes'
 download='apt-get install --assume-yes --download-only'
 
 error_on_debian_version() {
-    echo 'You must install XiVO on a Debian "jessie" system'
+    echo 'You must install XiVO on a Debian version' $debian_version
+    echo 'Your actual version is version' $version
     exit 1
 }
 
 check_system() {
+    xivo_target_version=${distribution:5}
     local version_file='/etc/debian_version'
     if [ ! -f $version_file ]; then
         error_on_debian_version
     else
         version=$(cut -d '.' -f 1 "$version_file")
     fi
-    if [ $version != '8' ]; then
+
+    if [[ $xivo_target_version == 'dev' || $xivo_target_version == 'rc' || $xivo_target_version == 'five' ]]; then
+        debian_version='8'
+    else
+        numeral_version_comparison=$(echo "$xivo_target_version>15.20" | bc)
+
+        if [ $numeral_version_comparison == '1' ]; then
+            debian_version='8'
+        else
+            debian_version='7'
+        fi
+
+    fi
+
+    if [ $version != $debian_version ]; then
         error_on_debian_version
+    else
+        echo "Your Debian version is compatible, let's process..."
     fi
 }
+
 
 add_xivo_key() {
     wget $mirror_xivo/xivo_current.key -O - | apt-key add -
