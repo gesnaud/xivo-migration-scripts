@@ -5,6 +5,7 @@ update='apt-get update'
 install='apt-get install --assume-yes'
 download='apt-get install --assume-yes --download-only'
 repo='debian'
+debian_name='jessie'
 
 error_on_debian_version() {
     echo 'You must install XiVO on a Debian version' $debian_version'.X'
@@ -28,6 +29,7 @@ check_system() {
             debian_version='8'
         else
             debian_version='7'
+            debian_name='wheezy'
         fi
     fi
 
@@ -62,7 +64,7 @@ add_mirror() {
 }
 
 install_xivo () {
-    wget -q -O - $mirror_xivo/d-i/jessie/pkg.cfg | debconf-set-selections
+    wget -q -O - $mirror_xivo/d-i/$debian_name/pkg.cfg | debconf-set-selections
 
     kernel_release=$(uname -r)
     $install --purge postfix
@@ -97,7 +99,7 @@ while getopts :dra opt; do
         d)distribution='xivo-dev';;
         r)distribution='xivo-rc';;
         a)distribution='xivo-'$2; repo='archive';;
-        *) usage;;
+        *)usage;;
     esac
 done
 
