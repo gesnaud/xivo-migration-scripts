@@ -4,20 +4,42 @@ mirror_xivo="http://mirror.xivo.io"
 update='apt-get update'
 install='apt-get install --assume-yes'
 download='apt-get install --assume-yes --download-only'
+repo='debian'
+debian_name='jessie'
 
 error_on_debian_version() {
-    echo 'You must install XiVO on a Debian "jessie" system'
+    echo 'You must install XiVO on a Debian version' $debian_version'.X'
+    echo 'Your actual version is version' $version
     exit 1
 }
 
 check_system() {
+    xivo_target_version=${distribution:5}
+    
+    if [ "$xivo_target_version" \< "14.18" ]; then
+        echo "You\'re trying to install a xivo older thant 14.18, that's not supported via this script."
+        exit 1
+    fi
+    
     local version_file='/etc/debian_version'
     if [ ! -f $version_file ]; then
         error_on_debian_version
     else
         version=$(cut -d '.' -f 1 "$version_file")
     fi
-    if [ $version != '8' ]; then
+
+    if [ $xivo_target_version = 'dev' -o $xivo_target_version = 'rc' -o $xivo_target_version = 'five' ]; then
+        debian_version='8'
+    else
+        if [ "$xivo_target_version" \> "15.19" ]; then
+            debian_version='8'
+        else
+            debian_version='7'
+            debian_name='wheezy'
+        fi
+    fi
+
+    if [ $version != $debian_version ]; then
         error_on_debian_version
     fi
 }
@@ -28,7 +50,7 @@ add_xivo_key() {
 
 add_mirror() {
     echo "Add mirrors informations"
-    local mirror="deb $mirror_xivo/debian $distribution main"
+    local mirror="deb $mirror_xivo/$repo $distribution main"
     apt_dir="/etc/apt"
     sources_list_dir="$apt_dir/sources.list.d"
     if ! grep -qr "$mirror" "$apt_dir"; then
@@ -46,7 +68,7 @@ add_mirror() {
 }
 
 install_xivo () {
-    wget -q -O - $mirror_xivo/d-i/jessie/pkg.cfg | debconf-set-selections
+    wget -q -O - $mirror_xivo/d-i/$debian_name/pkg.cfg | debconf-set-selections
 
     kernel_release=$(uname -r)
     $install --purge postfix
@@ -67,24 +89,25 @@ usage() {
     cat << EOF
     This script is used to install XiVO
 
-    usage : $(basename $0) {-d|-r}
+    usage : $(basename $0) {-d|-r|-a}
         whitout arg : install production version
         -r          : install release candidate version
         -d          : install development version
+        -a          : install archived version (14.18 or later)
 
 EOF
 }
 
-while getopts :dr opt; do
+while getopts :dra opt; do
     case ${opt} in
         d)distribution='xivo-dev';;
         r)distribution='xivo-rc';;
-        *) usage;;
+        a)distribution='xivo-'$2; repo='archive';;
+        *)usage;;
     esac
 done
 
 distribution=${distribution:-'xivo-five'}
-
 check_system
 add_mirror
 install_xivo
