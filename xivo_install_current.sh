@@ -15,6 +15,12 @@ error_on_debian_version() {
 
 check_system() {
     xivo_target_version=${distribution:5}
+    
+    if [ "$xivo_target_version" \< "14.18" ]; then
+        echo "You\'re trying to install a xivo older thant 14.18, that's not supported via this script."
+        exit 1
+    fi
+    
     local version_file='/etc/debian_version'
     if [ ! -f $version_file ]; then
         error_on_debian_version
@@ -22,10 +28,10 @@ check_system() {
         version=$(cut -d '.' -f 1 "$version_file")
     fi
 
-    if [[ $xivo_target_version == 'dev' || $xivo_target_version == 'rc' || $xivo_target_version == 'five' ]]; then
+    if [ $xivo_target_version = 'dev' -o $xivo_target_version = 'rc' -o $xivo_target_version = 'five' ]; then
         debian_version='8'
     else
-        if [[ "$xivo_target_version" > "15.19" ]]; then
+        if [ "$xivo_target_version" \> "15.19" ]; then
             debian_version='8'
         else
             debian_version='7'
@@ -37,8 +43,6 @@ check_system() {
         error_on_debian_version
     fi
 }
-
-
 
 add_xivo_key() {
     wget $mirror_xivo/xivo_current.key -O - | apt-key add -
@@ -81,7 +85,7 @@ install_xivo () {
     fi
 }
 
-  usage() {
+usage() {
     cat << EOF
     This script is used to install XiVO
 
@@ -89,7 +93,7 @@ install_xivo () {
         whitout arg : install production version
         -r          : install release candidate version
         -d          : install development version
-        -a          : install archived version (XX.XX)
+        -a          : install archived version (14.18 or later)
 
 EOF
 }
